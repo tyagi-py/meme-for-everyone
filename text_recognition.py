@@ -70,8 +70,7 @@ def decode_predictions(scores, geometry):
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", type=str,
 	help="path to input image")
-ap.add_argument("-east", "--east", type=str,
-	help="path to input EAST text detector")
+
 ap.add_argument("-c", "--min-confidence", type=float, default=0.5,
 	help="minimum probability required to inspect a region")
 ap.add_argument("-w", "--width", type=int, default=320,
@@ -106,7 +105,8 @@ layerNames = [
 
 # load the pre-trained EAST text detector
 print("[INFO] loading EAST text detector...")
-net = cv2.dnn.readNet(args["east"])
+east_detector= 'frozen_east_text_detection.pb'
+net = cv2.dnn.readNet(east_detector)
 
 # construct a blob from the image and then perform a forward pass of
 # the model to obtain the two output layer sets
@@ -165,6 +165,8 @@ results = sorted(results, key=lambda r:r[0][1])
 # loop over the results
 #final_image= 0
 final_image = orig.copy()
+from translate import translate_text
+from draw import draw_text
 for ((startX, startY, endX, endY), text) in results:
 	# display the text OCR'd by Tesseract
 	print("OCR TEXT")
@@ -175,11 +177,10 @@ for ((startX, startY, endX, endY), text) in results:
 	# using OpenCV, then draw the text and a bounding box surrounding
 	# the text region of the input image
 	text = "".join([c if ord(c) < 128 else "" for c in text]).strip()
-	
+	text = translate_text(text=text, des='hindi')
+	final_image = draw_text(final_image, startX, startY , text)
 	cv2.rectangle(final_image, (startX, startY), (endX, endY),
 		(0, 0, 255), 2)
-	cv2.putText(final_image, text, (startX, startY - 20),
-		cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
 
 	# show the output image
 cv2.imshow("Text Detection", final_image)
